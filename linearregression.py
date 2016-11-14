@@ -9,30 +9,32 @@ namestestnow = [ "QTAG","ETAG","UPVOTES","ANSWERS","TOPQUALANS","Q_WORD_ID_SEQ",
 
 def seq ( row,numberofetags):
     newrow =[0]*numberofetags
+
     for x in row:
         #print x
         if x!='':
             newrow[int(x)]=1
     return newrow
 
+def func1(row,numberofetags):
+    # newrow =[0]*numberofetags
+    #
+    # for x in row:
+    #     #print x
+    #     if x!='':
+    #         newrow[int(x)]=1
+    return [int(x)if x!='' and x in row else 0 for x in range(0,numberofetags) ]
+
+
+
 def removestuff(toremove,datax,dataxnew):
     dataxqwordid = datax[toremove].str.split("/",expand=True).stack().unique()
-    #data_new = [int(x) for x in dataxqwordid]
-    data_new =[]
-    for x in dataxqwordid:
-         if x!='':
-             data_new.append(int(x))
-         else:
-             print "what the hell"
-
+    data_new = [int(x) for x in dataxqwordid if x!='']
     numberofetags = max(data_new)+1
-    all_rec_tag = datax[toremove].str.split("/")
-    aa = []
-    for each_rec in all_rec_tag:
-        expanded = seq(each_rec,numberofetags)
-        aa.append(expanded)
-    bb = pd.DataFrame(aa)
-    dataxnew2 = pd.concat([dataxnew,bb],axis=1)
+    print numberofetags
+    blah =  datax[toremove].str.split("/").apply(func1,args=(numberofetags,) )
+    print "aitha?"
+    dataxnew2 = pd.concat([dataxnew,blah],axis=1)
     dataxnew3 = dataxnew2.drop([toremove],axis=1)
     return dataxnew3
 
@@ -42,8 +44,8 @@ def make01features(datax):
     dataxnew = pd.concat([dataxnew,dataxQTagnew],axis=1)
     data1 = removestuff("ETAG",datax,dataxnew)
     data2 = removestuff("Q_WORD_ID_SEQ",datax,data1)
-    data3 = removestuff("E_WORD_ID_SEQ",datax,data2)
-    return data3
+    #data3 = removestuff("E_WORD_ID_SEQ",datax,data1)
+    return data2
 
 def getoutputfiles(filename, outputfilename,regr):
     validate_x = pd.read_csv(filename, sep=',', names=namestest);
