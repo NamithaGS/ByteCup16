@@ -11,7 +11,7 @@
 # http://hal.archives-ouvertes.fr/docs/00/72/67/60/PDF/07-busa-fekete.pdf
 # Learning to Rank for Information Retrieval (Tie-Yan Liu)
 # """
-#coding=utf-8
+# coding=utf-8
 import numpy as np
 
 
@@ -205,6 +205,6 @@ def ndcg_at_k(r, k, method=0):
 
 
 if __name__ == "__main__":
-    #import doctest
-    #doctest.testmod()
+    # import doctest
+    # doctest.testmod()
     pass
