@@ -68,8 +68,8 @@ def transform_data(data, num_of_features, is_validate_set=False, running_on_desk
             transform_features(data['WORD_ID_SEQ'], num_of_features),
             transform_features(data['USER_WORD_ID_SEQ'], num_of_features),
             transform_features(data['ETAG'], e_tag_features),
-            #transform_features(data['CHAR_ID_SEQ'], num_of_features),
-            #transform_features(data['USER_CHAR_ID_SEQ'], num_of_features)
+            # transform_features(data['CHAR_ID_SEQ'], num_of_features),
+            # transform_features(data['USER_CHAR_ID_SEQ'], num_of_features)
         ], axis=1)
 
 
@@ -149,50 +149,49 @@ def svm(number_of_features, running_on_desktop=False):
 
     print "NDGC Score = %f" % (evaluate(df_true, df_pred))
 
+
 def graph_lab_reco(number_of_features, running_on_desktop=False):
     print "Graph lab reco with Features = %d" % (number_of_features)
     data = pd.read_csv('new_train.txt', sep=',')
+
     if running_on_desktop:
         data = data[0:1000]
 
     transformed_train_data = transform_data(data, number_of_features, running_on_desktop=running_on_desktop)
-    transformed_train_data.columns = range(0,len(transformed_train_data.columns))
+    transformed_train_data.columns = range(0, len(transformed_train_data.columns))
 
-
-    #standardized_data = standardize_data(transformed_train_data)
-    #standardize_data = transformed_train_data
+    # standardized_data = standardize_data(transformed_train_data)
+    # standardize_data = transformed_train_data
 
     transformed_train_data["EID"] = data["EID"]
     transformed_train_data["QID"] = data["QID"]
 
     training_data, test_data, train_label, test_label = get_train_test_split(transformed_train_data, data['LABEL'])
-
-    print len(training_data["QID"].tolist())
-    print len(training_data["EID"].tolist())
-    print len(test_label.tolist())
-    sf = graphlab.SFrame({'item_id':training_data["QID"].tolist(),'user_id':training_data["EID"].tolist(),'ratings':train_label.tolist()})
+    # ========train==============
+    sf = graphlab.SFrame({'item_id': training_data["QID"].tolist(), 'user_id': training_data["EID"].tolist(),
+                          'ratings': train_label.tolist()})
 
     user_info_dict = {}
-    for each_feature_column in (training_data.drop(["EID","QID"],axis=1)).columns.values[number_of_features+4:]:
+    for each_feature_column in (training_data.drop(["EID", "QID"], axis=1)).columns.values[number_of_features + 4:]:
         print each_feature_column
-        user_info_dict["u_feature"+str(each_feature_column)] = list(training_data[each_feature_column])
+        user_info_dict["u_feature" + str(each_feature_column)] = list(training_data[each_feature_column])
         print len(list(training_data[each_feature_column]))
     user_info_dict["user_id"] = training_data["EID"].tolist()
 
     item_info_dict = {}
 
-    for each_feature_column in (training_data.drop(["EID","QID"],axis=1)).columns.values[:number_of_features+3]:
-        item_info_dict["i_feature"+str(each_feature_column)] = training_data[each_feature_column]
+    for each_feature_column in (training_data.drop(["EID", "QID"], axis=1)).columns.values[:number_of_features + 3]:
+        item_info_dict["i_feature" + str(each_feature_column)] = training_data[each_feature_column]
     item_info_dict["item_id"] = training_data["QID"].tolist()
 
     user_info = graphlab.SFrame(user_info_dict)
     item_info = graphlab.SFrame(item_info_dict)
 
     model = graphlab.factorization_recommender.create(sf, target='ratings', user_data=user_info, item_data=item_info,
-                                                   nmf=True,binary_target=True)
+                                                      nmf=True, binary_target=True)
 
     print model.recommend(exclude_known=False)
-    #====================================
+    # ====================================
     sf_test = graphlab.SFrame({'item_id': test_data["QID"].tolist(), 'user_id': test_data["EID"].tolist()})
 
     user_info_dict = {}
@@ -211,11 +210,9 @@ def graph_lab_reco(number_of_features, running_on_desktop=False):
     user_info = graphlab.SFrame(user_info_dict)
     item_info = graphlab.SFrame(item_info_dict)
 
-
-    predictions = model.predict(sf_test,new_user_data=user_info,new_item_data=item_info)
+    predictions = model.predict(sf_test, new_user_data=user_info, new_item_data=item_info)
 
     print list(predictions)
-
 
     # lr = LogisticRegression(n_jobs=-1)
     # lr.fit(training_data, train_label)
@@ -228,6 +225,82 @@ def graph_lab_reco(number_of_features, running_on_desktop=False):
                          pd.DataFrame(list(predictions), columns=['LABEL'])], axis=1)
 
     print "NDGC Score = %f" % (evaluate(df_true, df_pred))
+
+    # ===========================VALIDATE DATA=======================
+
+
+
+    validate_data = pd.read_csv('new_validate.txt', sep=',')
+
+    transformed_validate_data = transform_data(validate_data, number_of_features, running_on_desktop=running_on_desktop,is_validate_set=True)
+    transformed_validate_data.columns = range(0, len(transformed_validate_data.columns))
+
+    transformed_validate_data["EID"] = validate_data["EID"]
+    transformed_validate_data["QID"] = validate_data["QID"]
+
+    # ===== train for validation data
+
+    sf = graphlab.SFrame(
+        {'item_id': transformed_train_data["QID"].tolist(), 'user_id': transformed_train_data["EID"].tolist(),
+         'ratings': data["LABEL"].tolist()})
+
+    user_info_dict = {}
+    for each_feature_column in (transformed_train_data.drop(["EID", "QID"], axis=1)).columns.values[
+                               number_of_features + 4:]:
+        print each_feature_column
+        user_info_dict["u_feature" + str(each_feature_column)] = list(transformed_train_data[each_feature_column])
+        print len(list(transformed_train_data[each_feature_column]))
+    user_info_dict["user_id"] = transformed_train_data["EID"].tolist()
+
+    item_info_dict = {}
+
+    for each_feature_column in (transformed_train_data.drop(["EID", "QID"], axis=1)).columns.values[
+                               :number_of_features + 3]:
+        item_info_dict["i_feature" + str(each_feature_column)] = transformed_train_data[each_feature_column]
+    item_info_dict["item_id"] = transformed_train_data["QID"].tolist()
+
+    user_info = graphlab.SFrame(user_info_dict)
+    item_info = graphlab.SFrame(item_info_dict)
+
+    model = graphlab.factorization_recommender.create(sf, target='ratings', user_data=user_info, item_data=item_info,
+                                                      nmf=True, binary_target=True)
+
+    print model.recommend(exclude_known=False)
+
+    # === test for validation data
+    sf_validate = graphlab.SFrame(
+        {'item_id': transformed_validate_data["QID"].tolist(), 'user_id': transformed_validate_data["EID"].tolist()})
+
+    user_info_dict = {}
+
+    for each_feature_column in (transformed_validate_data.drop(["EID", "QID"], axis=1)).columns.values[
+                               number_of_features + 4:]:
+        user_info_dict["u_feature" + str(each_feature_column)] = list(transformed_validate_data[each_feature_column])
+        print len(list(transformed_validate_data[each_feature_column]))
+    user_info_dict["user_id"] = transformed_validate_data["EID"].tolist()
+
+    item_info_dict = {}
+
+    for each_feature_column in (transformed_validate_data.drop(["EID", "QID"], axis=1)).columns.values[
+                               :number_of_features + 3]:
+        item_info_dict["i_feature" + str(each_feature_column)] = transformed_validate_data[each_feature_column]
+    item_info_dict["item_id"] = transformed_validate_data["QID"].tolist()
+
+    user_info = graphlab.SFrame(user_info_dict)
+    item_info = graphlab.SFrame(item_info_dict)
+
+    predictions = model.predict(sf_validate, new_user_data=user_info, new_item_data=item_info)
+
+    print "VALIDATION :"
+    print list(predictions)
+
+    df_pred = pd.concat([validate_data[['QID', 'EID']].ix[transformed_validate_data.index, :],
+                         pd.DataFrame(list(predictions), columns=['LABEL'])], axis=1)
+
+    df_pred.to_csv('validate_rs.csv', index=None)
+
+
+
     #
     # lr = LogisticRegression()
     # lr.fit(transformed_train_data, data['LABEL'])
@@ -244,7 +317,8 @@ def graph_lab_reco(number_of_features, running_on_desktop=False):
     #
     # print df_pred
     #
-    #df_pred.to_csv("validate_rs.csv", index=None)
+    # df_pred.to_csv("validate_rs.csv", index=None)
+
 
 def logistic_regression(number_of_features, running_on_desktop=False):
     print "Logistic Regression with Features = %d" % (number_of_features)
